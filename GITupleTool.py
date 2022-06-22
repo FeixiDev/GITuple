@@ -1,7 +1,27 @@
 # -*- coding: utf-8 -*-
 import paramiko
-import subprocess
+import re
 import yaml
+
+def get_GI_command(resource,node_id,volume):
+    """
+    构造 drbdsetup show-gi resource node-id volume 命令
+    """
+
+    GI_command = f'drbdsetup show-gi {resource} {node_id} {volume}'
+    return  GI_command
+
+def step1_filter_data(data):
+
+    pass
+
+
+
+
+def step2_filter_data(data):
+
+    pass
+
 
 
 class ReadConfig() :
@@ -57,8 +77,17 @@ class Ssh() :
             return data
 
 
-
 if __name__ == "__main__":
+    """
+    1.实例化读config文件的类
+    2.将config文件中node节点的相关信息整理以列表输出 a
+    3.在读config文件的类中构造第一条命令，即查寻各个节点的node-id和volume
+    4.ssh进入到首选的第一个节点，输入命令，输出信息
+    5.拿到输出的信息进行第一次筛选，筛选输出结果包含各个节点对应的node-id和volume
+    6.根据第一次筛选的输出结果，构造第二条命令，每个节点应输入所有节点-1条命令
+    7.ssh进入到每个节点，输入第二次构造的命令，搜集每一次执行命令后的信息，输入并进行保存
+    8.根据保存的记录和结果，使用一个函数或类来把信息整合排列并进行第二次筛选后输出
+    """
     test_read = ReadConfig()
     a = test_read.get_list()
     print(test_read.resource_cmd)
