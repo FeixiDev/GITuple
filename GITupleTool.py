@@ -39,6 +39,7 @@ class Ssh() :
         self.password = password
         self.port = port
         self.SSHConnection = None
+        self.connect()
 
     def connect(self):
             objSSHClient = paramiko.SSHClient()  # 创建SSH对象
