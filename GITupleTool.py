@@ -11,16 +11,39 @@ def get_GI_command(resource,node_id,volume):
     GI_command = f'drbdsetup show-gi {resource} {node_id} {volume}'
     return  GI_command
 
-def step1_filter_data(data):
 
-    pass
+def step1_filter_data(data,first_name):
 
+    node = "node-id:"
+    volume = "volume:"
 
+    nodeid_list = re.findall(node+r'(\d)',data)
+    volume_list = re.findall(volume+r'(\d)',data)
+    nodeid_new = re.findall(r' ([\w]{2}) '+node+'\d',data)
+
+    list1 = []
+    list2 = []
+
+    for x ,y in zip(nodeid_list,volume_list) :
+        list1.append(x)
+        list1.append(y)
+        list2.append(list1)
+        list1 = []
+
+    results = {}
+    results[first_name] = list2[0]
+
+    for x ,y in zip(nodeid_new,range(1,len(list2))) :
+        results[x] = list2[y]
+
+    return results
 
 
 def step2_filter_data(data):
 
-    pass
+    result = re.findall(r'\w{16}:\w{16}:\w{16}:\w{16}:\w:\w:\w:\w:\w:\w:\w:\w:\w:\w:\w:\w',data)
+
+    return result
 
 
 
@@ -74,6 +97,7 @@ class Ssh() :
         if self.SSHConnection:
             stdin, stdout, stderr = self.SSHConnection.exec_command(command)
             data = stdout.read()
+            data = data.decode('utf-8') #此处注意，原始输出编码为bytes-like，但使用正则表达式findall()则需要chart-like,需要改编码
             return data
 
 
@@ -83,17 +107,37 @@ if __name__ == "__main__":
     2.将config文件中node节点的相关信息整理以列表输出 a
     3.在读config文件的类中构造第一条命令，即查寻各个节点的node-id和volume
     4.ssh进入到首选的第一个节点，输入命令，输出信息
-    5.拿到输出的信息进行第一次筛选，筛选输出结果包含各个节点对应的node-id和volume
+    5.拿到输出的信息进行第一次筛选，筛选输出结果包含各个节点对应的node-id和volume 
     6.根据第一次筛选的输出结果，构造第二条命令，每个节点应输入所有节点-1条命令
     7.ssh进入到每个节点，输入第二次构造的命令，搜集每一次执行命令后的信息，输入并进行保存
     8.根据保存的记录和结果，使用一个函数或类来把信息整合排列并进行第二次筛选后输出
     """
-    test_read = ReadConfig()
-    a = test_read.get_list()
-    print(test_read.resource_cmd)
-    one_ssh = Ssh(a[0][0],a[0][1],a[0][2],a[0][3])
-    result = one_ssh.exec_command(test_read.resource_cmd)
-    print(result)
+
+    config_read = ReadConfig()
+    config_info = config_read.get_list()  #将关键信息提取并构造为一个数组
+    config_resource = config_read.resource
+
+    one_ssh = Ssh(config_info[0][0],config_info[0][1],config_info[0][2],config_info[0][3])  #取配置文件的第一个node节点信息来获取node-id和volume数据
+    step1_result = one_ssh.exec_command(config_read.resource_cmd)  #取配置文件的第一个node节点信息来获取node-id和volume数据
+
+    step1_info = step1_filter_data(step1_result,config_info[0][0])
+
+
+    for i in config_info :
+        i_ssh = Ssh(i[0],i[1],i[2],i[3])
+        print(f'{i[0]}节点上的结果：')
+        for z in step1_info :
+            if i[0] != z :
+                GI_command = get_GI_command(config_resource,step1_info[z][0],step1_info[z][1])
+                GI_results = step2_filter_data(i_ssh.exec_command(GI_command))[0]
+                print(f'命令：{GI_command}')
+                print(f'GI元组：{GI_results}')
+
+
+
+
+
+
 
 
     # for i in a :
