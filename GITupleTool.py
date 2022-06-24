@@ -13,6 +13,9 @@ def get_GI_command(resource,node_id,volume):
 
 
 def step1_filter_data(data,first_name):
+    """
+    处理拿到的数据，将其构造为字典，格式为：{"name":["ndoe-id","volume"],.....}
+    """
 
     node = "node-id:"
     volume = "volume:"
@@ -40,10 +43,38 @@ def step1_filter_data(data,first_name):
 
 
 def step2_filter_data(data):
+    """
+    处理拿到的数据，提取GI元祖并返回
+    """
 
     result = re.findall(r'\w{16}:\w{16}:\w{16}:\w{16}:\w:\w:\w:\w:\w:\w:\w:\w:\w:\w:\w:\w',data)
 
     return result
+
+def final_output():
+    """
+    最后处理步骤，输出结果
+    """
+    config_read = ReadConfig()
+    config_info = config_read.get_list()  #将关键信息提取并构造为一个数组
+    config_resource = config_read.resource
+
+    one_ssh = Ssh(config_info[0][0],config_info[0][1],config_info[0][2],config_info[0][3])  #取配置文件的第一个node节点信息来获取node-id和volume数据
+    step1_result = one_ssh.exec_command(config_read.resource_cmd)  #取配置文件的第一个node节点信息来获取node-id和volume数据
+
+    step1_info = step1_filter_data(step1_result,config_info[0][0])
+
+
+    for i in config_info :
+        i_ssh = Ssh(i[0],i[1],i[2],i[3])
+        print(f'{i[0]}节点上的结果：')
+        for z in step1_info :
+            if i[0] != z :
+                GI_command = get_GI_command(config_resource,step1_info[z][0],step1_info[z][1])
+                GI_results = step2_filter_data(i_ssh.exec_command(GI_command))[0]
+                print(f'命令：{GI_command}')
+                print(f'GI元组：{GI_results}')
+
 
 
 
@@ -113,33 +144,24 @@ if __name__ == "__main__":
     8.根据保存的记录和结果，使用一个函数或类来把信息整合排列并进行第二次筛选后输出
     """
 
-    config_read = ReadConfig()
-    config_info = config_read.get_list()  #将关键信息提取并构造为一个数组
-    config_resource = config_read.resource
+    final_output()
 
-    one_ssh = Ssh(config_info[0][0],config_info[0][1],config_info[0][2],config_info[0][3])  #取配置文件的第一个node节点信息来获取node-id和volume数据
-    step1_result = one_ssh.exec_command(config_read.resource_cmd)  #取配置文件的第一个node节点信息来获取node-id和volume数据
-
-    step1_info = step1_filter_data(step1_result,config_info[0][0])
-
-
-    for i in config_info :
-        i_ssh = Ssh(i[0],i[1],i[2],i[3])
-        print(f'{i[0]}节点上的结果：')
-        for z in step1_info :
-            if i[0] != z :
-                GI_command = get_GI_command(config_resource,step1_info[z][0],step1_info[z][1])
-                GI_results = step2_filter_data(i_ssh.exec_command(GI_command))[0]
-                print(f'命令：{GI_command}')
-                print(f'GI元组：{GI_results}')
-
-
-
-
-
-
-
-
-    # for i in a :
-    #     test_ssh = Ssh(i[0],i[1],i[2],i[3])
-
+    # config_read = ReadConfig()
+    # config_info = config_read.get_list()  #将关键信息提取并构造为一个数组
+    # config_resource = config_read.resource
+    #
+    # one_ssh = Ssh(config_info[0][0],config_info[0][1],config_info[0][2],config_info[0][3])  #取配置文件的第一个node节点信息来获取node-id和volume数据
+    # step1_result = one_ssh.exec_command(config_read.resource_cmd)  #取配置文件的第一个node节点信息来获取node-id和volume数据
+    #
+    # step1_info = step1_filter_data(step1_result,config_info[0][0])
+    #
+    #
+    # for i in config_info :
+    #     i_ssh = Ssh(i[0],i[1],i[2],i[3])
+    #     print(f'{i[0]}节点上的结果：')
+    #     for z in step1_info :
+    #         if i[0] != z :
+    #             GI_command = get_GI_command(config_resource,step1_info[z][0],step1_info[z][1])
+    #             GI_results = step2_filter_data(i_ssh.exec_command(GI_command))[0]
+    #             print(f'命令：{GI_command}')
+    #             print(f'GI元组：{GI_results}')
