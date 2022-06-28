@@ -1,0 +1,8 @@
+resource: ut1l2f
+node:
+  - name: n1
+    ip: 10.203.1.37
+    password: password
+  - name: n2
+    ip: 10.203.1.38
+    password: Feixi@123
