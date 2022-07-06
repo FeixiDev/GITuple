@@ -1,0 +1,17 @@
+sp: sp2
+size: 20G
+device: enp3s0f1
+node:
+  - name: n1  #此处必须为diskless节点
+    ip: 10.203.1.37
+    username: root
+    password: password
+  - name: n2  #此处必须为diskful节点
+    ip: 10.203.1.38
+    username: root
+    password: Feixi@123
+  - name: n3  #此处必须为diskful节点
+    ip: 10.203.1.39
+    username: root
+    password: password
+#n1配置diskless，n2和n3配置diskfull
