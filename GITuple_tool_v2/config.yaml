@@ -1,6 +1,7 @@
 sp: sp2
 size: 20G
-device: enp3s0f1
+device:
+  - ens224
 node:
   - name: n1  #此处必须为diskless节点
     ip: 10.203.1.37
