@@ -2,6 +2,10 @@ sp: sp2
 size: 20G
 device:
   - ens224
+phynode:
+  - ip: None
+  - username: None
+  - password: None
 node:
   - name: n1  #此处必须为diskless节点
     ip: 10.203.1.37
