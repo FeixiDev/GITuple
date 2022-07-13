@@ -1,8 +1,22 @@
-resource: ut1l2f
+sp: sp2
+size: 20G
+device:
+  - ens224
+phynode:
+  - ip: None
+  - username: None
+  - password: None
 node:
-  - name: n1
+  - name: n1  #此处必须为diskless节点
     ip: 10.203.1.37
+    username: root
     password: password
-  - name: n2
+  - name: n2  #此处必须为diskful节点
     ip: 10.203.1.38
+    username: root
     password: Feixi@123
+  - name: n3  #此处必须为diskful节点
+    ip: 10.203.1.39
+    username: root
+    password: password
+#n1配置diskless，n2和n3配置diskfull
