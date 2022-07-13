@@ -1,11 +1,12 @@
 sp: sp2
-size: 20G
+size: 1G
 device:
   - ens224
 phynode:
   - ip: None
   - username: None
   - password: None
+#此处填写断开节点的信息
 node:
   - name: n1  #此处必须为diskless节点
     ip: 10.203.1.37
@@ -20,3 +21,4 @@ node:
     username: root
     password: password
 #n1配置diskless，n2和n3配置diskfull
+#n2固定做断网卡测试，n3固定做断节点测试

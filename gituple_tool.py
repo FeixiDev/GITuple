@@ -780,19 +780,24 @@ class NodeOperation(SyncCheck):
         node2_name = self.yaml_node_list[2][0]  # n3
         ssh_obj = Ssh(self.yaml_node_list[1][0], self.yaml_node_list[1][1], self.yaml_node_list[1][2],
                       self.yaml_node_list[1][3])
-        info = ssh_obj.exec_command('linstor r l | grep giresource')
+        info = ssh_obj.exec_command('linstor r l -p | grep giresource')
         ssh_obj.close()
-        result1 = re.findall(r'(%s)[\w\W]*(UpToDate)' % node1_name, info)
-        result2 = re.findall(r'(%s)[\w\W]*(Inconsistent)' % node2_name, info)   #这里关n3，n3应为Inconsistent
+        result1 = re.findall(r'(%s)[\s]*\|[\w\s]*\|[\w\s]*\|[\w\s]*\|([\w\s]*)\|' % node1_name, info)
+        result2 = re.findall(r'(%s)[\s]*\|[\w\s]*\|[\w\s]*\|[\w\s]*\|([\w\s]*)\|' % node2_name, info)
+        result1_1 = result1[0][1]
+        result1_2 = result1_1.strip()
+        result2_1 = result2[0][1]
+        result2_2 = result2_1.strip()
+
         try:
-            if result1[0][0] == node1_name and result2[0][0] == node2_name:
-                print(f'{node1_name}节点状态为Inconsistent，正常')
+            if result1_2 == 'UpToDate' and result2_2 == 'Inconsistent':
+                print(f'{node2_name}节点状态为{result2_2}，正常')
                 state = True
             else:
-                print(f'{node1_name}节点状态异常')
+                print(f'{node2_name}节点状态异常,为 {result2_2}')
                 state = False
         except:
-            print(f'{node1_name}节点状态异常')
+            print(f'{node2_name}节点状态异常,为 {result2_2}')
             state = False
 
         return state
@@ -876,6 +881,7 @@ class NodeOperation(SyncCheck):
                 if state3 is True:
                     state4 = self.linstor_cluster_check()
                     if state4 is True:
+                        time.sleep(5)
                         state5 = self.gituple_check_type0()
                         if state5 is True:
                             return True
