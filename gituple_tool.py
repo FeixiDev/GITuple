@@ -215,7 +215,7 @@ class PerformCreateResourceTask():
             GI_log = GI_log + f'  (1)期望:同步源的Bitmap UUID和同步目标的Current相同\n'
             GI_log = GI_log + f'  (2)实际情况:与预期不符,小资源创建最后一位差1一位数为正常情况\n'
             GI_log = GI_log + f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}{node1_name}的GI为:{GI_info2}\n\n'
-            state = True    #此处应为down
+            state = False    #此处应为down
         return state
 
     def step4(self):
@@ -368,7 +368,7 @@ class SyncCheck():
             GI_log = GI_log + f'  (2)实际情况:与预期不符\n'
             GI_log = GI_log + f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}{node1_name}的GI为:{GI_info2}\n\n'
             print("两节点的Current UUID、Bitmap UUID和Current UUID、Bitmap UUID不同，出现错误")
-            state = True    #此处应为false
+            state = False    #此处应为false
         return state
 
     def start_up(self):
@@ -574,7 +574,7 @@ class DrbdNetworkOperation(SyncCheck):
             GI_log = GI_log + f'  (1)预期:节点{node1_name}的Current UUID与节点{node2_name}的Bitmap UUID一致\n'
             GI_log = GI_log + f'  (2)实际情况:与预期不符\n'
             GI_log = GI_log + f'  (3)测试结果:\n{node1_name}的Current UUID为{result1[0]}{node2_name}的Bitmap UUID为{result2[1]}\n'
-            state = True    #此处应为false
+            state = False    #此处应为false
         return state
 
 class StopDdAndCheckGituple(SyncCheck):
