@@ -200,7 +200,7 @@ class PerformCreateResourceTask():
         result1 = re.findall(r'[\w]{16}', GI_info1)
         result2 = re.findall(r'[\w]{16}', GI_info2)
 
-        if result2[0] == result1[1]:
+        if result2[0][0:15] == result1[1][0:15]:
             print(f'同步目标的Current为{result2[0]}')
             print(f'同步源的Bitmap为{result1[1]}')
             print("同步源的Bitmap UUID和同步目标的Current相同")
@@ -213,7 +213,7 @@ class PerformCreateResourceTask():
             print(f'同步源的Bitmap为{result1[1]}')
             print("同步源的Bitmap UUID和同步目标的Current不同，出现错误")
             GI_log = GI_log + f'  (1)期望:同步源的Bitmap UUID和同步目标的Current相同\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期不符,小资源创建最后一位差1一位数为正常情况\n'
+            GI_log = GI_log + f'  (2)实际情况:与预期不符,但小资源创建最后一位差1一位数为正常情况\n'
             GI_log = GI_log + f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}{node1_name}的GI为:{GI_info2}\n\n'
             state = False    #此处应为down
         return state
@@ -462,7 +462,7 @@ class DrbdNetworkOperation(SyncCheck):
                       self.yaml_node_list[1][3])
         try:
             for dev in self.device:
-                cmd = f'ifconfig {dev} down'
+                cmd = f'nmcli device down {dev}'
                 ssh_obj.exec_command(cmd)
                 print(f"网卡：{dev}已经关闭")
             ssh_obj.close()
@@ -477,7 +477,7 @@ class DrbdNetworkOperation(SyncCheck):
                       self.yaml_node_list[1][3])
         try:
             for dev in self.device:
-                cmd = f'ifconfig {dev} up'
+                cmd = f'nmcli device up {dev}'
                 ssh_obj.exec_command(cmd)
                 print(f"网卡：{dev}已经开启")
             ssh_obj.close()

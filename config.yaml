@@ -1,24 +1,24 @@
-sp: sp2
-size: 1G
+sp: fsp
+size: 10G
 device:
-  - ens224
+  - enp3s0f3
 phynode:
-  - ip: None
-  - username: None
-  - password: None
+  - ip: 10.203.1.126
+  - username: admin
+  - password: admin
 #此处填写断开节点的信息
 node:
-  - name: n1  #此处必须为diskless节点
-    ip: 10.203.1.37
+  - name: ubuntu  #此处必须为diskless节点
+    ip: 10.203.1.147
     username: root
-    password: password
-  - name: n2  #此处必须为diskful节点
-    ip: 10.203.1.38
+    password: Feixi@171101
+  - name: vplx2kjammy  #此处必须为diskful节点
+    ip: 10.203.1.146
     username: root
-    password: Feixi@123
-  - name: n3  #此处必须为diskful节点
-    ip: 10.203.1.39
+    password: Feixi@171101
+  - name: vplx2kjammy02  #此处必须为diskful节点
+    ip: 10.203.1.145
     username: root
-    password: password
+    password: Feixi@171101
 #n1配置diskless，n2和n3配置diskfull
 #n2固定做断网卡测试，n3固定做断节点测试
