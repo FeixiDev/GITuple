@@ -4,6 +4,8 @@ import re
 import yaml
 import time
 import subprocess
+import logging
+import datetime
 from threading import Thread
 
 
@@ -167,7 +169,7 @@ class PerformCreateResourceTask():
         result1_2 = result1_1[0].strip()
         result2_1 = re.findall(r'([a-z|A-Z]*)', result2[0][1].strip())
         result2_2 = result2_1[0].strip()
-        time.sleep(2)   #会有同步时间，可能是节点的问题，不是第一时间为SyncTarget而是
+        time.sleep(4)   #会有同步时间，可能是节点的问题，不是第一时间为SyncTarget而是
         if result1_2 == 'UpToDate' and result2_2 == 'SyncTarget':
             print(f"{node1_name}的状态为 UpToDate")
             print(f"{node2_name}的状态为 SyncTarget")
@@ -179,7 +181,6 @@ class PerformCreateResourceTask():
         return state
 
     def step3(self):
-        global GI_log
         print("step3:检查GI Tuple信息")
         node1_name = self.yaml_node_list[1][0]
         node2_name = self.yaml_node_list[2][0]
@@ -204,18 +205,18 @@ class PerformCreateResourceTask():
             print(f'同步目标的Current为{result2[0]}')
             print(f'同步源的Bitmap为{result1[1]}')
             print("同步源的Bitmap UUID和同步目标的Current相同")
-            GI_log = GI_log + f'  (1)期望:同步源的Bitmap UUID和同步目标的Current相同\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期相符\n'
-            GI_log = GI_log + f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}\n{node1_name}的GI为:{GI_info2}\n\n'
+            logging.info(f'  (1)期望:同步源的Bitmap UUID和同步目标的Current相同\n')
+            logging.info(f'  (2)实际情况:与预期相符\n')
+            logging.info(f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}\n{node1_name}的GI为:{GI_info2}\n\n')
             state = True
         else:
             print(f'同步目标的Current为{result2[0]}')
             print(f'同步源的Bitmap为{result1[1]}')
             print("同步源的Bitmap UUID和同步目标的Current不同，出现错误")
-            GI_log = GI_log + f'  (1)期望:同步源的Bitmap UUID和同步目标的Current相同\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期不符,但小资源创建最后一位差1一位数为正常情况\n'
-            GI_log = GI_log + f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}{node1_name}的GI为:{GI_info2}\n\n'
-            state = False    #此处应为down
+            logging.info('  (1)期望:同步源的Bitmap UUID和同步目标的Current相同\n')
+            logging.info('  (2)实际情况:与预期不符,但小资源创建最后一位差1一位数为正常情况\n')
+            logging.info(f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}{node1_name}的GI为:{GI_info2}\n\n')
+            state = False
         return state
 
     def step4(self):
@@ -235,12 +236,11 @@ class PerformCreateResourceTask():
         return state
 
     def start_up(self):
-        global GI_log
-        GI_log = GI_log + '1.创建资源\n'
+        logging.info('1.创建资源\n')
         print("开始执行资源创建")
         state1 = self.step1()
         if state1 is True:
-            time.sleep(8)
+            time.sleep(5)
             state2 = self.step2()
             if state2 is True:
                 state3 = self.step3()
@@ -326,7 +326,7 @@ class SyncCheck():
                     print("result数组数据有误,linstor集群同步失败")
                     break
             except:
-                time.sleep(10)
+                time.sleep(30)
                 info = ssh_obj.exec_command('linstor r l | grep giresource')
                 result1 = re.findall(r'(%s)[\w\W]*(UpToDate)' % node1_name, info)
                 result2 = re.findall(r'(%s)[\w\W]*(UpToDate)' % node2_name, info)
@@ -335,7 +335,6 @@ class SyncCheck():
         return True
 
     def gituple_check(self):
-        global GI_log
         node1_name = self.yaml_node_list[1][0]  #n2
         node2_name = self.yaml_node_list[2][0]  #n3
         nodeid_and_volume_info = self.check_nodeid_and_volume()
@@ -359,21 +358,20 @@ class SyncCheck():
 
         if result2[0] == result1[0] and result2[1] == result1[1]:
             print("两节点的Current UUID、Bitmap UUID和Current UUID、Bitmap UUID一致")
-            GI_log = GI_log + f'  (1)期望:两节点的Current UUID、Bitmap UUID和Current UUID、Bitmap UUID一致\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期相符\n'
-            GI_log = GI_log + f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}{node1_name}的GI为:{GI_info2}\n\n'
+            logging.info(f'  (1)期望:两节点的Current UUID、Bitmap UUID和Current UUID、Bitmap UUID一致\n')
+            logging.info(f'  (2)实际情况:与预期相符\n')
+            logging.info(f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}{node1_name}的GI为:{GI_info2}\n\n')
             state = True
         else:
-            GI_log = GI_log + f'  (1)期望:两节点的Current UUID、Bitmap UUID和Current UUID、Bitmap UUID一致\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期不符\n'
-            GI_log = GI_log + f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}{node1_name}的GI为:{GI_info2}\n\n'
+            logging.info(f'  (1)期望:两节点的Current UUID、Bitmap UUID和Current UUID、Bitmap UUID一致\n')
+            logging.info(f'  (2)实际情况:与预期不符\n')
+            logging.info(f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}{node1_name}的GI为:{GI_info2}\n\n')
             print("两节点的Current UUID、Bitmap UUID和Current UUID、Bitmap UUID不同，出现错误")
             state = False    #此处应为false
         return state
 
     def start_up(self):
-        global GI_log
-        GI_log = GI_log + '等待同步完成\n'
+        logging.info('等待同步完成\n')
         state1 = self.linstor_sync_check()
         if state1 is True:
             state2 = self.gituple_check()
@@ -423,8 +421,7 @@ class DdWriteData(SyncCheck):
             print("dd写数据操作执行失败")
 
     def start_up(self):
-        global GI_log
-        GI_log = GI_log + 'dd写数据\n'
+        logging.info('dd写数据\n')
         state1 = Thread(target=self.use_dd_to_write_data)
         state1.start()
         time.sleep(5)
@@ -464,7 +461,7 @@ class DrbdNetworkOperation(SyncCheck):
             for dev in self.device:
                 cmd = f'nmcli device down {dev}'
                 ssh_obj.exec_command(cmd)
-                print(f"网卡：{dev}已经关闭")
+                print(f"{self.yaml_node_list[1][0]}的网卡：{dev}已经关闭")
             ssh_obj.close()
             state = True
         except:
@@ -511,11 +508,10 @@ class DrbdNetworkOperation(SyncCheck):
         return state
 
     def start_up(self):
-        global GI_log
-        GI_log = GI_log + '进行节点开关网卡操作\n'
+        logging.info('\n')
         state1 = self.down_interface()
+        time.sleep(10)
         if state1 is True:
-            time.sleep(8)
             state2 = self.gituple_check_type1()
             if state2 is True:
                 state3 = self.up_interface()
@@ -524,7 +520,7 @@ class DrbdNetworkOperation(SyncCheck):
                     if state4 is True:
                         time.sleep(8)
                         state5 = self.gituple_check_type1()
-                        GI_log = GI_log + '\n\n'
+                        logging.info('\n\n')
                         if state5 is True:
                             return True
                         else:
@@ -539,7 +535,6 @@ class DrbdNetworkOperation(SyncCheck):
             return False
 
     def gituple_check_type1(self):
-        global GI_log
         node1_name = self.yaml_node_list[1][0]  #n2
         node2_name = self.yaml_node_list[2][0]  #n3
         nodeid_and_volume_info = self.check_nodeid_and_volume()
@@ -558,22 +553,20 @@ class DrbdNetworkOperation(SyncCheck):
 
         result1 = re.findall(r'[\w]{16}', GI_info1)
         result2 = re.findall(r'[\w]{16}', GI_info2)
-        print(f'{result1}')
-        print(f'{result2}')
         print(f'{node1_name}的Current UUID为{result1[0]}')
         print(f'{node2_name}的Bitmap UUID为{result2[1]}')
         if result2[1] == result1[0] :   #down的是n2，因此n2的Current UUID与n3的Bitmap UUID应一致
             print(f"节点{node1_name}的Current UUID与节点{node2_name}的Bitmap UUID一致")
-            GI_log = GI_log + f'  (1)预期:节点{node1_name}的Current UUID与节点{node2_name}的Bitmap UUID一致\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期相符\n'
-            GI_log = GI_log + f'  (3)测试结果:\n{node1_name}的GI信息为{GI_info1}{node2_name}的GI信息为{GI_info2}\n'
+            logging.info(f'  (1)预期:节点{node1_name}的Current UUID与节点{node2_name}的Bitmap UUID一致\n')
+            logging.info(f'  (2)实际情况:与预期相符\n')
+            logging.info(f'  (3)测试结果:\n{node1_name}的GI信息为{GI_info1}\n{node2_name}的GI信息为{GI_info2}\n')
 
             state = True
         else:
             print(f"节点{node1_name}的Current UUID与节点{node2_name}的Bitmap UUID不一致，错误")
-            GI_log = GI_log + f'  (1)预期:节点{node1_name}的Current UUID与节点{node2_name}的Bitmap UUID一致\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期不符\n'
-            GI_log = GI_log + f'  (3)测试结果:\n{node1_name}的Current UUID为{result1[0]}{node2_name}的Bitmap UUID为{result2[1]}\n'
+            logging.info(f'  (1)预期:节点{node1_name}的Current UUID与节点{node2_name}的Bitmap UUID一致\n')
+            logging.info(f'  (2)实际情况:与预期不符\n')
+            logging.info(f'  (3)测试结果:\n{node1_name}的Current UUID为{result1[0]}\n{node2_name}的Bitmap UUID为{result2[1]}\n')
             state = False    #此处应为false
         return state
 
@@ -604,8 +597,7 @@ class StopDdAndCheckGituple(SyncCheck):
         return state
 
     def start_up(self):
-        global GI_log
-        GI_log = GI_log + '停止dd并检查GI\n'
+        logging.info('停止dd并检查GI\n')
         state1 = self.stop_dd()
         time.sleep(5)
         if state1 is True:
@@ -823,6 +815,7 @@ class NodeOperation(SyncCheck):
             state1 = subprocess.run(shutdown_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
             time.sleep(5)
             state2 = subprocess.run(check_shutdown_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
+            print("关机成功")
             print(state2)
             return True
         except:
@@ -837,6 +830,7 @@ class NodeOperation(SyncCheck):
             state1 = subprocess.run(poweron_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
             time.sleep(5)
             state2 = subprocess.run(check_poweron_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
+            print("开机成功")
             print(state2)
             return True
         except:
@@ -851,11 +845,8 @@ class NodeOperation(SyncCheck):
                       self.yaml_node_list[1][3])
         info = ssh_obj.exec_command('linstor r l -p | grep giresource')
         ssh_obj.close()
-        print(info)
         result1 = re.findall(r'(%s)[\s]*\|[\w\s]*\|[\w\s]*\|[\w\s(),]*\|([\w\s().%%]*)\|' % node1_name, str(info))
         result2 = re.findall(r'(%s)[\s]*\|[\w\s]*\|[\w\s]*\|[\w\s(),]*\|([\w\s().%%]*)\|' % node2_name, str(info))
-        print(result1)
-        print(result2)
         result1_1 = result1[0][1]
         result1_2 = result1_1.strip()
         result2_1 = result2[0][1]
@@ -866,15 +857,14 @@ class NodeOperation(SyncCheck):
                 state = True
             else:
                 print(f'{node2_name}节点状态异常,为 {result2_2}')
-                state = True
+                state = False
         except:
             print(f'{node2_name}节点状态异常,为 {result2_2}')
-            state = True
+            state = False
 
         return state
 
     def gituple_check_type0(self):
-        global GI_log
         node1_name = self.yaml_node_list[1][0]  #n2
         node2_name = self.yaml_node_list[2][0]  #n3
         nodeid_and_volume_info = self.check_nodeid_and_volume()
@@ -893,25 +883,22 @@ class NodeOperation(SyncCheck):
 
         result1 = re.findall(r'[\w]{16}', GI_info1) #n3的结果
         result2 = re.findall(r'[\w]{16}', GI_info2) #n2的结果
-        print(result1)
-        print(result2)
 
         if result2[0] == result1[1] :   #down的是n3，因此n3的Current UUID与n2的Bitmap UUID应一致
             print(f"节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致")
-            GI_log = GI_log + f'  (1)预期:节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期相符\n'
-            GI_log = GI_log + f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}在{node2_name}上执行{node2_GI_query_cmd}\n{GI_info2}\n\n'
+            logging.info(f'  (1)预期:节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致\n')
+            logging.info(f'  (2)实际情况:与预期相符\n')
+            logging.info(f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}在{node2_name}上执行{node2_GI_query_cmd}\n{GI_info2}\n\n')
             state = True
         else:
             print(f"节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID不一致，错误")
-            GI_log = GI_log + f'  (1)预期:节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期不符\n'
-            GI_log = GI_log + f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}在{node2_name}上执行{node2_GI_query_cmd}\n{GI_info2}\n\n'
-            state = True    #应为False
+            logging.info(f'  (1)预期:节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致\n')
+            logging.info(f'  (2)实际情况:与预期不符\n')
+            logging.info(f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}在{node2_name}上执行{node2_GI_query_cmd}\n{GI_info2}\n\n')
+            state = False    #应为False
         return state
 
     def gituple_check_type2(self):
-        global GI_log
         history_gi = self.gituple_return()
         node1_name = self.yaml_node_list[1][0]  #n2
         node2_name = self.yaml_node_list[2][0]  #n3
@@ -924,20 +911,19 @@ class NodeOperation(SyncCheck):
         ssh_obj_1.close()
 
         result1 = re.findall(r'[\w]{16}', GI_info1)
-        print(result1)
 
         if history_gi == result1[1] :   #down的是n3，因此n3的Current UUID与n2的Bitmap UUID应一致
             print(f"节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致")
-            GI_log = GI_log + f'  (1)预期:节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期相符\n'
-            GI_log = GI_log + f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}\n'
+            logging.info(f'  (1)预期:节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致\n')
+            logging.info(f'  (2)实际情况:与预期相符\n')
+            logging.info(f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}\n')
             state = True
         else:
             print(f"节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}不一致，错误")
-            GI_log = GI_log + f'  (1)预期:节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期不符\n'
-            GI_log = GI_log + f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}\n'
-            state = True    #应为False
+            logging.info(f'  (1)预期:节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致\n')
+            logging.info(f'  (2)实际情况:与预期不符\n')
+            logging.info(f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}\n')
+            state = False    #应为False
         return state
 
     def gituple_return(self):
@@ -957,19 +943,19 @@ class NodeOperation(SyncCheck):
         return result2
 
     def start_up(self):
-        global GI_log
-        GI_log = GI_log + '开关节点并检查GI\n'
+        logging.info('\n')
         state1 = self.down_interface()
+        time.sleep(5)
         if state1 is True:
-            time.sleep(8)
             state2 = self.gituple_check_type2()
             if state2 is True:
                 state3 = self.up_interface()
+                time.sleep(5)
                 if state3 is True:
-                    time.sleep(5)
                     state4 = self.linstor_sync_check()
                     if state4 is True:
                         state5 = self.linstor_cluster_check()
+                        time.sleep(5)
                         if state5 is True:
                             stat6 = self.gituple_check_type0()
                             if stat6 is True:
@@ -1004,9 +990,14 @@ class DeleteResource(SyncCheck):
             print("资源删除失败")
             return False
 
+def log():
+    time1 = datetime.datetime.now().strftime('%Y%m%d %H_%M_%S')
+    # 此处进行Logging.basicConfig() 设置，后面设置无效
+    logging.basicConfig(filename=f'{time1} log.txt',
+                     format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s-%(funcName)s',
+                     level=logging.DEBUG)
 
-
-if __name__ == "__main__":
+def operations():
     '''
     1.创建资源
     2.检查同步
@@ -1018,7 +1009,6 @@ if __name__ == "__main__":
     8.停dd
     9.删除资源
     '''
-    GI_log = ''
     test = PerformCreateResourceTask()
     test2 = SyncCheck()
     test3 = DdWriteData()
@@ -1029,25 +1019,25 @@ if __name__ == "__main__":
 
     step1 = test.start_up()
     if step1 is True:
-        GI_log = GI_log + '2.等待同步完成'
+        logging.info('2.等待同步完成')
         step2 = test2.start_up()
         if step2 is True:
-            GI_log = GI_log + '3.dd写数据'
+            logging.info('3.dd写数据')
             step3 = test3.start_up()
             if step3 is True:
-                GI_log = GI_log + '4.进行节点开关网卡操作'
+                logging.info('4.进行节点开关网卡操作')
                 step4 = test4.start_up()
                 if step4 is True:
-                    GI_log = GI_log + '5.停止dd并检查GI'
+                    logging.info('5.停止dd并检查GI')
                     step5 = test5.start_up()
                     if step5 is True:
-                        GI_log = GI_log + '6.dd写数据'
+                        logging.info('6.dd写数据')
                         step6 = test3.start_up()
                         if step6 is True:
-                            GI_log = GI_log + '7.开关节点并检查GI'
+                            logging.info('7.开关节点并检查GI')
                             step7 = test6.start_up()
                             if step7 is True:
-                                GI_log = GI_log + '8.停止dd并检查GI'
+                                logging.info('8.停止dd并检查GI')
                                 step8 = test5.start_up()
                                 if step8 is True:
                                     step9 = test7.start_up()
@@ -1072,9 +1062,14 @@ if __name__ == "__main__":
     else:
         print("错误")
 
-    a = time.time()
-    b = time.strftime('%Y.%m.%d-%H_%M_%S',time.localtime(time.time()))
-    name = f'GI_Tuple_{b}.txt'
-    with open(name,'a+',encoding='utf-8') as e:
-        e.write(GI_log)
-        e.close()
+def main():
+    log()
+    config_obj = ReadConfig()
+    times = config_obj.yaml_info["Cycle execution times"]
+    for i in times:
+        logging.info(f'--------开始第{i}次执行--------')
+        operations()
+
+
+if __name__ == "__main__":
+    main()

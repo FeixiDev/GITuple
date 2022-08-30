@@ -1,3 +1,4 @@
+Cycle execution times:  1
 sp: fsp
 size: 10G
 device:
@@ -9,16 +10,16 @@ phynode:
 #此处填写断开节点的信息
 node:
   - name: ubuntu  #此处必须为diskless节点
-    ip: 10.203.1.147
-    username: root
-    password: Feixi@171101
+    ip: 10.203.1.43
+    username: horatio
+    password: password
   - name: vplx2kjammy  #此处必须为diskful节点
-    ip: 10.203.1.146
-    username: root
-    password: Feixi@171101
+    ip: 10.203.1.44
+    username: horatio
+    password: password
   - name: vplx2kjammy02  #此处必须为diskful节点
-    ip: 10.203.1.145
-    username: root
-    password: Feixi@171101
+    ip: 10.203.1.45
+    username: horatio
+    password: password
 #n1配置diskless，n2和n3配置diskfull
 #n2固定做断网卡测试，n3固定做断节点测试
