@@ -1,23 +1,23 @@
 Cycle execution times:  1
-sp: fsp
-size: 10G
+sp: sptest
+size: 5G
 device:
-  - enp3s0f3
-phynode:
-  - ip: 10.203.1.126
-  - username: admin
-  - password: admin
+  - bond0
+#phynode:
+#  - ip: 10.203.1.126
+#  - username: admin
+#  - password: admin
 #此处填写断开节点的信息
 node:
-  - name: ubuntu  #此处必须为diskless节点
-    ip: 10.203.1.43
-    username: horatio
-    password: password
-  - name: vplx2kjammy  #此处必须为diskful节点
+  - name: VersaPLX08  #此处必须为diskless节点
     ip: 10.203.1.44
     username: horatio
     password: password
-  - name: vplx2kjammy02  #此处必须为diskful节点
+  - name: VersaPLX06  #此处必须为diskful节点
+    ip: 10.203.1.43
+    username: horatio
+    password: password
+  - name: VersaPLX07  #此处必须为diskful节点
     ip: 10.203.1.45
     username: horatio
     password: password
