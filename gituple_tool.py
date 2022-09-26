@@ -614,229 +614,45 @@ class StopDdAndCheckGituple(SyncCheck):
         else:
             return False
 
-class NodeOperation(SyncCheck):
-    def __init__(self):
-        super(NodeOperation, self).__init__()
-        self.obj_config = ReadConfig()
-        self.yaml_info = self.obj_config.yaml_info
-        self.yaml_node_list = self.obj_config.yaml_list
-        self.sp = self.yaml_info['sp']
-        self.size = self.yaml_info['size']
-        self.device = self.yaml_info['device']
-
-    def down_interface(self):
-        ssh_obj = Ssh(self.yaml_node_list[2][0], self.yaml_node_list[2][1], self.yaml_node_list[2][2],
-                      self.yaml_node_list[2][3])
-        try:
-            for dev in self.device:
-                cmd = f'nmcli device down {dev}'
-                ssh_obj.exec_command(cmd)
-                print(f"{self.yaml_node_list[2][0]}网卡：{dev}已经关闭")
-            ssh_obj.close()
-            state = True
-        except:
-            print("网卡关闭失败")
-            state = False
-        return state
-
-    def up_interface(self):
-        ssh_obj = Ssh(self.yaml_node_list[2][0], self.yaml_node_list[2][1], self.yaml_node_list[2][2],
-                      self.yaml_node_list[2][3])
-        try:
-            for dev in self.device:
-                cmd = f'nmcli device up {dev}'
-                ssh_obj.exec_command(cmd)
-                print(f"{self.yaml_node_list[2][0]}网卡：{dev}已经开启")
-            ssh_obj.close()
-            state = True
-        except:
-            print("网卡开启失败")
-            state = False
-        return state
-
-    def linstor_cluster_check(self):
-        print("检测linstor集群情况")
-        node1_name = self.yaml_node_list[1][0]  # n2
-        node2_name = self.yaml_node_list[2][0]  # n3
-        ssh_obj = Ssh(self.yaml_node_list[1][0], self.yaml_node_list[1][1], self.yaml_node_list[1][2],
-                      self.yaml_node_list[1][3])
-        info = ssh_obj.exec_command('linstor r l -p | grep giresource')
-        ssh_obj.close()
-        print(info)
-        result1 = re.findall(r'(%s)[\s]*\|[\w\s]*\|[\w\s]*\|[\w\s(),]*\|([\w\s().%%]*)\|' % node1_name, str(info))
-        result2 = re.findall(r'(%s)[\s]*\|[\w\s]*\|[\w\s]*\|[\w\s(),]*\|([\w\s().%%]*)\|' % node2_name, str(info))
-        print(result1)
-        print(result2)
-        result1_1 = result1[0][1]
-        result1_2 = result1_1.strip()
-        result2_1 = result2[0][1]
-        result2_2 = result2_1.strip()
-        try:
-            if result1_2 == 'UpToDate' and result2_2 == 'Inconsistent': #测试时有问题,应为UpToDate
-                print(f'{node2_name}节点状态为{result2_2}，正常')
-                state = True
-            else:
-                print(f'{node2_name}节点状态异常,为 {result2_2}')
-                state = True
-        except:
-            print(f'{node2_name}节点状态异常,为 {result2_2}')
-            state = True
-
-        return state
-
-    def gituple_check_type0(self):
-        global GI_log
-        node1_name = self.yaml_node_list[1][0]  #n2
-        node2_name = self.yaml_node_list[2][0]  #n3
-        nodeid_and_volume_info = self.check_nodeid_and_volume()
-        node1_GI_query_cmd = f'drbdsetup get-gi giresource {nodeid_and_volume_info[node2_name][0]} {nodeid_and_volume_info[node2_name][1]} '
-        node2_GI_query_cmd = f'drbdsetup get-gi giresource {nodeid_and_volume_info[node1_name][0]} {nodeid_and_volume_info[node1_name][1]}'
-
-        ssh_obj_1 = Ssh(self.yaml_node_list[1][0], self.yaml_node_list[1][1], self.yaml_node_list[1][2],
-                        self.yaml_node_list[1][3])
-        GI_info1 = ssh_obj_1.exec_command(node1_GI_query_cmd)
-        ssh_obj_1.close()
-
-        ssh_obj_2 = Ssh(self.yaml_node_list[2][0], self.yaml_node_list[2][1], self.yaml_node_list[2][2],
-                        self.yaml_node_list[2][3])
-        GI_info2 = ssh_obj_2.exec_command(node2_GI_query_cmd)
-        ssh_obj_2.close()
-
-        result1 = re.findall(r'[\w]{16}', GI_info1) #n3的结果
-        result2 = re.findall(r'[\w]{16}', GI_info2) #n2的结果
-        print(result1)
-        print(result2)
-
-        if result2[0] == result1[1] :   #down的是n3，因此n3的Current UUID与n2的Bitmap UUID应一致
-            print(f"节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致")
-            GI_log = GI_log + f'  (1)预期:节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期相符\n'
-            GI_log = GI_log + f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}在{node2_name}上执行{node2_GI_query_cmd}\n{GI_info2}\n\n'
-            state = True
-        else:
-            print(f"节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID不一致，错误")
-            GI_log = GI_log + f'  (1)预期:节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期不符\n'
-            GI_log = GI_log + f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}在{node2_name}上执行{node2_GI_query_cmd}\n{GI_info2}\n\n'
-            state = True    #应为False
-        return state
-
-    def gituple_check_type2(self):
-        global GI_log
-        history_gi = self.gituple_return()
-        node1_name = self.yaml_node_list[1][0]  #n2
-        node2_name = self.yaml_node_list[2][0]  #n3
-        nodeid_and_volume_info = self.check_nodeid_and_volume()
-        node1_GI_query_cmd = f'drbdsetup get-gi giresource {nodeid_and_volume_info[node2_name][0]} {nodeid_and_volume_info[node2_name][1]}'
-
-        ssh_obj_1 = Ssh(self.yaml_node_list[1][0], self.yaml_node_list[1][1], self.yaml_node_list[1][2],
-                        self.yaml_node_list[1][3])
-        GI_info1 = ssh_obj_1.exec_command(node1_GI_query_cmd)
-        ssh_obj_1.close()
-
-        result1 = re.findall(r'[\w]{16}', GI_info1)
-        print(result1)
-
-        if history_gi == result1[1] :   #down的是n3，因此n3的Current UUID与n2的Bitmap UUID应一致
-            print(f"节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致")
-            GI_log = GI_log + f'  (1)预期:节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期相符\n'
-            GI_log = GI_log + f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}\n'
-            state = True
-        else:
-            print(f"节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}不一致，错误")
-            GI_log = GI_log + f'  (1)预期:节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致\n'
-            GI_log = GI_log + f'  (2)实际情况:与预期不符\n'
-            GI_log = GI_log + f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}\n'
-            state = True    #应为False
-        return state
-
-    def gituple_return(self):
-        node1_name = self.yaml_node_list[1][0]  #n2
-        node2_name = self.yaml_node_list[2][0]  #n3
-        nodeid_and_volume_info = self.check_nodeid_and_volume()
-        node1_GI_query_cmd = f'drbdsetup get-gi giresource {nodeid_and_volume_info[node2_name][0]} {nodeid_and_volume_info[node2_name][1]}'
-
-        ssh_obj_1 = Ssh(self.yaml_node_list[1][0], self.yaml_node_list[1][1], self.yaml_node_list[1][2],
-                        self.yaml_node_list[1][3])
-        GI_info1 = ssh_obj_1.exec_command(node1_GI_query_cmd)
-        ssh_obj_1.close()
-
-        result1 = re.findall(r'[\w]{16}', GI_info1)
-        result2 = result1[0]
-
-        return result2
-
-    def start_up(self):
-        global GI_log
-        GI_log = GI_log + '开关节点并检查GI\n'
-        state1 = self.down_interface()
-        if state1 is True:
-            time.sleep(8)
-            state2 = self.gituple_check_type2()
-            if state2 is True:
-                state3 = self.up_interface()
-                if state3 is True:
-                    time.sleep(5)
-                    state4 = self.linstor_sync_check()
-                    if state4 is True:
-                        state5 = self.linstor_cluster_check()
-                        if state5 is True:
-                            stat6 = self.gituple_check_type0()
-                            if stat6 is True:
-                                return True
-                            else:
-                                return False
-                        else:
-                            return False
-                    else:
-                        return False
-                else:
-                    return False
-            else:
-                return False
-        else:
-            return False
-
 # class NodeOperation(SyncCheck):
 #     def __init__(self):
 #         super(NodeOperation, self).__init__()
 #         self.obj_config = ReadConfig()
 #         self.yaml_info = self.obj_config.yaml_info
 #         self.yaml_node_list = self.obj_config.yaml_list
-#         self.yaml_phynode_list = self.yaml_info['phynode']
-#         self.ip = self.yaml_phynode_list[0]['ip']
-#         self.username = self.yaml_phynode_list[1]['username']
-#         self.password = self.yaml_phynode_list[2]['password']
+#         self.sp = self.yaml_info['sp']
+#         self.size = self.yaml_info['size']
+#         self.device = self.yaml_info['device']
 #
 #     def down_interface(self):
+#         ssh_obj = Ssh(self.yaml_node_list[2][0], self.yaml_node_list[2][1], self.yaml_node_list[2][2],
+#                       self.yaml_node_list[2][3])
 #         try:
-#             shutdown_cmd = f'ipmitool -I lanplus -H {self.ip} -U {self.username} -P {self.password} power off'
-#             check_shutdown_cmd = f'ipmitool -I lanplus -H {self.ip} -U {self.username} -P {self.password} power status'
-#             state1 = subprocess.run(shutdown_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
-#             time.sleep(5)
-#             state2 = subprocess.run(check_shutdown_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
-#             print("关机成功")
-#             print(state2)
-#             return True
+#             for dev in self.device:
+#                 cmd = f'nmcli device down {dev}'
+#                 ssh_obj.exec_command(cmd)
+#                 print(f"{self.yaml_node_list[2][0]}网卡：{dev}已经关闭")
+#             ssh_obj.close()
+#             state = True
 #         except:
-#             print("关机失败")
-#             return False
+#             print("网卡关闭失败")
+#             state = False
+#         return state
 #
 #     def up_interface(self):
+#         ssh_obj = Ssh(self.yaml_node_list[2][0], self.yaml_node_list[2][1], self.yaml_node_list[2][2],
+#                       self.yaml_node_list[2][3])
 #         try:
-#             poweron_cmd = f'ipmitool -I lanplus -H {self.ip} -U {self.username} -P {self.password} power on'
-#             time.sleep(5)
-#             check_poweron_cmd = f'linstor n l'
-#             state1 = subprocess.run(poweron_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
-#             time.sleep(5)
-#             state2 = subprocess.run(check_poweron_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
-#             print("开机成功")
-#             print(state2)
-#             return True
+#             for dev in self.device:
+#                 cmd = f'nmcli device up {dev}'
+#                 ssh_obj.exec_command(cmd)
+#                 print(f"{self.yaml_node_list[2][0]}网卡：{dev}已经开启")
+#             ssh_obj.close()
+#             state = True
 #         except:
-#             print("开机失败")
-#             return False
+#             print("网卡开启失败")
+#             state = False
+#         return state
 #
 #     def linstor_cluster_check(self):
 #         print("检测linstor集群情况")
@@ -846,8 +662,11 @@ class NodeOperation(SyncCheck):
 #                       self.yaml_node_list[1][3])
 #         info = ssh_obj.exec_command('linstor r l -p | grep giresource')
 #         ssh_obj.close()
+#         print(info)
 #         result1 = re.findall(r'(%s)[\s]*\|[\w\s]*\|[\w\s]*\|[\w\s(),]*\|([\w\s().%%]*)\|' % node1_name, str(info))
 #         result2 = re.findall(r'(%s)[\s]*\|[\w\s]*\|[\w\s]*\|[\w\s(),]*\|([\w\s().%%]*)\|' % node2_name, str(info))
+#         print(result1)
+#         print(result2)
 #         result1_1 = result1[0][1]
 #         result1_2 = result1_1.strip()
 #         result2_1 = result2[0][1]
@@ -858,14 +677,15 @@ class NodeOperation(SyncCheck):
 #                 state = True
 #             else:
 #                 print(f'{node2_name}节点状态异常,为 {result2_2}')
-#                 state = False
+#                 state = True
 #         except:
 #             print(f'{node2_name}节点状态异常,为 {result2_2}')
-#             state = False
+#             state = True
 #
 #         return state
 #
 #     def gituple_check_type0(self):
+#         global GI_log
 #         node1_name = self.yaml_node_list[1][0]  #n2
 #         node2_name = self.yaml_node_list[2][0]  #n3
 #         nodeid_and_volume_info = self.check_nodeid_and_volume()
@@ -884,22 +704,25 @@ class NodeOperation(SyncCheck):
 #
 #         result1 = re.findall(r'[\w]{16}', GI_info1) #n3的结果
 #         result2 = re.findall(r'[\w]{16}', GI_info2) #n2的结果
+#         print(result1)
+#         print(result2)
 #
 #         if result2[0] == result1[1] :   #down的是n3，因此n3的Current UUID与n2的Bitmap UUID应一致
 #             print(f"节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致")
-#             logging.info(f'  (1)预期:节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致\n')
-#             logging.info(f'  (2)实际情况:与预期相符\n')
-#             logging.info(f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}在{node2_name}上执行{node2_GI_query_cmd}\n{GI_info2}\n\n')
+#             GI_log = GI_log + f'  (1)预期:节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致\n'
+#             GI_log = GI_log + f'  (2)实际情况:与预期相符\n'
+#             GI_log = GI_log + f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}在{node2_name}上执行{node2_GI_query_cmd}\n{GI_info2}\n\n'
 #             state = True
 #         else:
 #             print(f"节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID不一致，错误")
-#             logging.info(f'  (1)预期:节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致\n')
-#             logging.info(f'  (2)实际情况:与预期不符\n')
-#             logging.info(f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}在{node2_name}上执行{node2_GI_query_cmd}\n{GI_info2}\n\n')
-#             state = False    #应为False
+#             GI_log = GI_log + f'  (1)预期:节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致\n'
+#             GI_log = GI_log + f'  (2)实际情况:与预期不符\n'
+#             GI_log = GI_log + f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}在{node2_name}上执行{node2_GI_query_cmd}\n{GI_info2}\n\n'
+#             state = True    #应为False
 #         return state
 #
 #     def gituple_check_type2(self):
+#         global GI_log
 #         history_gi = self.gituple_return()
 #         node1_name = self.yaml_node_list[1][0]  #n2
 #         node2_name = self.yaml_node_list[2][0]  #n3
@@ -912,19 +735,20 @@ class NodeOperation(SyncCheck):
 #         ssh_obj_1.close()
 #
 #         result1 = re.findall(r'[\w]{16}', GI_info1)
+#         print(result1)
 #
 #         if history_gi == result1[1] :   #down的是n3，因此n3的Current UUID与n2的Bitmap UUID应一致
 #             print(f"节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致")
-#             logging.info(f'  (1)预期:节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致\n')
-#             logging.info(f'  (2)实际情况:与预期相符\n')
-#             logging.info(f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}\n')
+#             GI_log = GI_log + f'  (1)预期:节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致\n'
+#             GI_log = GI_log + f'  (2)实际情况:与预期相符\n'
+#             GI_log = GI_log + f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}\n'
 #             state = True
 #         else:
 #             print(f"节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}不一致，错误")
-#             logging.info(f'  (1)预期:节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致\n')
-#             logging.info(f'  (2)实际情况:与预期不符\n')
-#             logging.info(f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}\n')
-#             state = False    #应为False
+#             GI_log = GI_log + f'  (1)预期:节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致\n'
+#             GI_log = GI_log + f'  (2)实际情况:与预期不符\n'
+#             GI_log = GI_log + f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}\n'
+#             state = True    #应为False
 #         return state
 #
 #     def gituple_return(self):
@@ -944,19 +768,19 @@ class NodeOperation(SyncCheck):
 #         return result2
 #
 #     def start_up(self):
-#         logging.info('\n')
+#         global GI_log
+#         GI_log = GI_log + '开关节点并检查GI\n'
 #         state1 = self.down_interface()
-#         time.sleep(5)
 #         if state1 is True:
+#             time.sleep(8)
 #             state2 = self.gituple_check_type2()
 #             if state2 is True:
 #                 state3 = self.up_interface()
-#                 time.sleep(5)
 #                 if state3 is True:
+#                     time.sleep(5)
 #                     state4 = self.linstor_sync_check()
 #                     if state4 is True:
 #                         state5 = self.linstor_cluster_check()
-#                         time.sleep(5)
 #                         if state5 is True:
 #                             stat6 = self.gituple_check_type0()
 #                             if stat6 is True:
@@ -973,6 +797,182 @@ class NodeOperation(SyncCheck):
 #                 return False
 #         else:
 #             return False
+
+class NodeOperation(SyncCheck):
+    def __init__(self):
+        super(NodeOperation, self).__init__()
+        self.obj_config = ReadConfig()
+        self.yaml_info = self.obj_config.yaml_info
+        self.yaml_node_list = self.obj_config.yaml_list
+        self.yaml_phynode_list = self.yaml_info['phynode']
+        self.ip = self.yaml_phynode_list[0]['ip']
+        self.username = self.yaml_phynode_list[1]['username']
+        self.password = self.yaml_phynode_list[2]['password']
+
+    def down_interface(self):
+        try:
+            shutdown_cmd = f'ipmitool -I lanplus -H {self.ip} -U {self.username} -P {self.password} power off'
+            check_shutdown_cmd = f'ipmitool -I lanplus -H {self.ip} -U {self.username} -P {self.password} power status'
+            state1 = subprocess.run(shutdown_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
+            time.sleep(5)
+            state2 = subprocess.run(check_shutdown_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
+            print("关机成功")
+            print(state2)
+            return True
+        except:
+            print("关机失败")
+            return False
+
+    def up_interface(self):
+        try:
+            poweron_cmd = f'ipmitool -I lanplus -H {self.ip} -U {self.username} -P {self.password} power on'
+            time.sleep(5)
+            check_poweron_cmd = f'linstor n l'
+            state1 = subprocess.run(poweron_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
+            time.sleep(5)
+            state2 = subprocess.run(check_poweron_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
+            print("开机成功")
+            print(state2)
+            return True
+        except:
+            print("开机失败")
+            return False
+
+    def linstor_cluster_check(self):
+        print("检测linstor集群情况")
+        node1_name = self.yaml_node_list[1][0]  # n2
+        node2_name = self.yaml_node_list[2][0]  # n3
+        ssh_obj = Ssh(self.yaml_node_list[1][0], self.yaml_node_list[1][1], self.yaml_node_list[1][2],
+                      self.yaml_node_list[1][3])
+        info = ssh_obj.exec_command('linstor r l -p | grep giresource')
+        ssh_obj.close()
+        result1 = re.findall(r'(%s)[\s]*\|[\w\s]*\|[\w\s]*\|[\w\s(),]*\|([\w\s().%%]*)\|' % node1_name, str(info))
+        result2 = re.findall(r'(%s)[\s]*\|[\w\s]*\|[\w\s]*\|[\w\s(),]*\|([\w\s().%%]*)\|' % node2_name, str(info))
+        result1_1 = result1[0][1]
+        result1_2 = result1_1.strip()
+        result2_1 = result2[0][1]
+        result2_2 = result2_1.strip()
+        try:
+            if result1_2 == 'UpToDate' and result2_2 == 'Inconsistent': #测试时有问题,应为UpToDate
+                print(f'{node2_name}节点状态为{result2_2}，正常')
+                state = True
+            else:
+                print(f'{node2_name}节点状态异常,为 {result2_2}')
+                state = False
+        except:
+            print(f'{node2_name}节点状态异常,为 {result2_2}')
+            state = False
+
+        return state
+
+    def gituple_check_type0(self):
+        node1_name = self.yaml_node_list[1][0]  #n2
+        node2_name = self.yaml_node_list[2][0]  #n3
+        nodeid_and_volume_info = self.check_nodeid_and_volume()
+        node1_GI_query_cmd = f'drbdsetup get-gi giresource {nodeid_and_volume_info[node2_name][0]} {nodeid_and_volume_info[node2_name][1]} '
+        node2_GI_query_cmd = f'drbdsetup get-gi giresource {nodeid_and_volume_info[node1_name][0]} {nodeid_and_volume_info[node1_name][1]}'
+
+        ssh_obj_1 = Ssh(self.yaml_node_list[1][0], self.yaml_node_list[1][1], self.yaml_node_list[1][2],
+                        self.yaml_node_list[1][3])
+        GI_info1 = ssh_obj_1.exec_command(node1_GI_query_cmd)
+        ssh_obj_1.close()
+
+        ssh_obj_2 = Ssh(self.yaml_node_list[2][0], self.yaml_node_list[2][1], self.yaml_node_list[2][2],
+                        self.yaml_node_list[2][3])
+        GI_info2 = ssh_obj_2.exec_command(node2_GI_query_cmd)
+        ssh_obj_2.close()
+
+        result1 = re.findall(r'[\w]{16}', GI_info1) #n3的结果
+        result2 = re.findall(r'[\w]{16}', GI_info2) #n2的结果
+
+        if result2[0] == result1[1] :   #down的是n3，因此n3的Current UUID与n2的Bitmap UUID应一致
+            print(f"节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致")
+            logging.info(f'  (1)预期:节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致\n')
+            logging.info(f'  (2)实际情况:与预期相符\n')
+            logging.info(f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}在{node2_name}上执行{node2_GI_query_cmd}\n{GI_info2}\n\n')
+            state = True
+        else:
+            print(f"节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID不一致，错误")
+            logging.info(f'  (1)预期:节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致\n')
+            logging.info(f'  (2)实际情况:与预期不符\n')
+            logging.info(f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}在{node2_name}上执行{node2_GI_query_cmd}\n{GI_info2}\n\n')
+            state = False    #应为False
+        return state
+
+    def gituple_check_type2(self):
+        history_gi = self.gituple_return()
+        node1_name = self.yaml_node_list[1][0]  #n2
+        node2_name = self.yaml_node_list[2][0]  #n3
+        nodeid_and_volume_info = self.check_nodeid_and_volume()
+        node1_GI_query_cmd = f'drbdsetup get-gi giresource {nodeid_and_volume_info[node2_name][0]} {nodeid_and_volume_info[node2_name][1]}'
+
+        ssh_obj_1 = Ssh(self.yaml_node_list[1][0], self.yaml_node_list[1][1], self.yaml_node_list[1][2],
+                        self.yaml_node_list[1][3])
+        GI_info1 = ssh_obj_1.exec_command(node1_GI_query_cmd)
+        ssh_obj_1.close()
+
+        result1 = re.findall(r'[\w]{16}', GI_info1)
+
+        if history_gi == result1[1] :   #down的是n3，因此n3的Current UUID与n2的Bitmap UUID应一致
+            print(f"节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致")
+            logging.info(f'  (1)预期:节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致\n')
+            logging.info(f'  (2)实际情况:与预期相符\n')
+            logging.info(f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}\n')
+            state = True
+        else:
+            print(f"节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}不一致，错误")
+            logging.info(f'  (1)预期:节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致\n')
+            logging.info(f'  (2)实际情况:与预期不符\n')
+            logging.info(f'  (3)测试结果:\n在{node1_name}上执行{node1_GI_query_cmd}\n{GI_info1}\n')
+            state = False    #应为False
+        return state
+
+    def gituple_return(self):
+        node1_name = self.yaml_node_list[1][0]  #n2
+        node2_name = self.yaml_node_list[2][0]  #n3
+        nodeid_and_volume_info = self.check_nodeid_and_volume()
+        node1_GI_query_cmd = f'drbdsetup get-gi giresource {nodeid_and_volume_info[node2_name][0]} {nodeid_and_volume_info[node2_name][1]}'
+
+        ssh_obj_1 = Ssh(self.yaml_node_list[1][0], self.yaml_node_list[1][1], self.yaml_node_list[1][2],
+                        self.yaml_node_list[1][3])
+        GI_info1 = ssh_obj_1.exec_command(node1_GI_query_cmd)
+        ssh_obj_1.close()
+
+        result1 = re.findall(r'[\w]{16}', GI_info1)
+        result2 = result1[0]
+
+        return result2
+
+    def start_up(self):
+        logging.info('\n')
+        state1 = self.down_interface()
+        time.sleep(5)
+        if state1 is True:
+            state2 = self.gituple_check_type2()
+            if state2 is True:
+                state3 = self.up_interface()
+                time.sleep(5)
+                if state3 is True:
+                    state4 = self.linstor_sync_check()
+                    if state4 is True:
+                        state5 = self.linstor_cluster_check()
+                        time.sleep(5)
+                        if state5 is True:
+                            stat6 = self.gituple_check_type0()
+                            if stat6 is True:
+                                return True
+                            else:
+                                return False
+                        else:
+                            return False
+                    else:
+                        return False
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return False
 
 class DeleteResource(SyncCheck):
     def __init__(self):
