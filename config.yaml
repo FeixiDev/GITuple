@@ -1,13 +1,12 @@
 Cycle execution times:  1
-sp: sptest
+sp: fsp
 size: 5G
 device:
   - bond0
-#phynode:
-#  - ip: 10.203.1.126
-#  - username: admin
-#  - password: admin
-#此处填写断开节点的信息
+phynode:
+  - ip: 10.203.1.126
+  - username: admin
+  - password: admin
 node:
   - name: VersaPLX08  #此处必须为diskless节点
     ip: 10.203.1.44
