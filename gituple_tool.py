@@ -1011,7 +1011,7 @@ class DeleteResource(SyncCheck):
 def log():
     time1 = datetime.datetime.now().strftime('%Y%m%d %H_%M_%S')
     # 此处进行Logging.basicConfig() 设置，后面设置无效
-    logging.basicConfig(filename=f'{time1} log.txt',
+    logging.basicConfig(filename=f'{time1}_log.log',
                      format = '%(asctime)s- %(levelname)s - %(message)s',
                      level=logging.WARNING)
 
