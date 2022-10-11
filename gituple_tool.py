@@ -368,7 +368,7 @@ class SyncCheck():
             logging.warning(f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}{node1_name}的GI为:{GI_info2}\n\n')
             state = True
         else:
-            logging.warningo(f'  (1)期望:两节点的Current UUID、Bitmap UUID和Current UUID、Bitmap UUID一致\n')
+            logging.warning(f'  (1)期望:两节点的Current UUID、Bitmap UUID和Current UUID、Bitmap UUID一致\n')
             logging.warning(f'  (2)实际情况:与预期不符\n')
             logging.warning(f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}{node1_name}的GI为:{GI_info2}\n\n')
             print("两节点的Current UUID、Bitmap UUID和Current UUID、Bitmap UUID不同，出现错误")
@@ -413,15 +413,14 @@ class DdWriteData(SyncCheck):
         return data2
 
     def use_dd_to_write_data(self): #用多线程重写
-        print("................................线程1:开始执行dd写数据操作")
         try:
             devicename = self.get_devicename()
+            print("................................线程1:开始执行dd写数据操作")
             cmd = f'dd if=/dev/urandom of={devicename} oflag=direct status=progress'
             ssh_obj = Ssh(self.yaml_node_list[0][0], self.yaml_node_list[0][1], self.yaml_node_list[0][2],
                           self.yaml_node_list[0][3])
             ssh_obj.exec_command(cmd)
             time.sleep(5)
-            ssh_obj.close()  # 已经执行了命令，ssh断开后dd写数据是否在持续进行？
             print(".....................dd写数据操作执行完毕,dd进程已被关闭")
         except:
             print("dd写数据操作执行失败")
@@ -431,7 +430,6 @@ class DdWriteData(SyncCheck):
         state1 = Thread(target=self.use_dd_to_write_data)
         state1.setDaemon(True)
         state1.start()
-        time.sleep(5)
         state2 = self.gituple_check()
         if state2 is True:
             return True
@@ -526,8 +524,9 @@ class DrbdNetworkOperation(SyncCheck):
             state2 = self.gituple_check_type1()
             if state2 is True:
                 state3 = self.up_interface()
+                time.sleep(15)
                 if state3 is True:
-                    state4 = self.linstor_sync_check()
+                    state4 = self.linstor_cluster_check()
                     if state4 is True:
                         time.sleep(8)
                         state5 = self.gituple_check_type1()
@@ -685,7 +684,7 @@ class NodeOperationMock(SyncCheck):
         result2_1 = result2[0][1]
         result2_2 = result2_1.strip()
         try:
-            if result1_2 == 'UpToDate' and result2_2 == 'UpToDate':
+            if result1_2 == 'UpToDate' and result2_2 == 'Inconsistent':
                 print(f'{node2_name}节点状态为{result2_2}，正常')
                 state = True
             else:
@@ -694,7 +693,7 @@ class NodeOperationMock(SyncCheck):
                 sys.exit()
         except:
             print(f'{node2_name}节点状态异常,为 {result2_2}')
-            state = True
+            state = False
 
         return state
 
@@ -790,16 +789,12 @@ class NodeOperationMock(SyncCheck):
             if state2 is True:
                 state3 = self.up_interface()
                 if state3 is True:
-                    time.sleep(5)
-                    state4 = self.linstor_sync_check()
-                    if state4 is True:
-                        state5 = self.linstor_cluster_check()
-                        if state5 is True:
-                            stat6 = self.gituple_check_type0()
-                            if stat6 is True:
-                                return True
-                            else:
-                                return False
+                    time.sleep(15)
+                    state5 = self.linstor_cluster_check()
+                    if state5 is True:
+                        stat6 = self.gituple_check_type0()
+                        if stat6 is True:
+                            return True
                         else:
                             return False
                     else:
@@ -968,18 +963,14 @@ class NodeOperation(SyncCheck):
             state2 = self.gituple_check_type2()
             if state2 is True:
                 state3 = self.up_interface()
-                time.sleep(5)
+                time.sleep(15)
                 if state3 is True:
-                    state4 = self.linstor_sync_check()
-                    if state4 is True:
-                        state5 = self.linstor_cluster_check()
-                        time.sleep(5)
-                        if state5 is True:
-                            stat6 = self.gituple_check_type0()
-                            if stat6 is True:
-                                return True
-                            else:
-                                return False
+                    state5 = self.linstor_cluster_check()
+                    time.sleep(5)
+                    if state5 is True:
+                        stat6 = self.gituple_check_type0()
+                        if stat6 is True:
+                            return True
                         else:
                             return False
                     else:
