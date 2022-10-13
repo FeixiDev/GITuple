@@ -529,7 +529,7 @@ class DrbdNetworkOperation(SyncCheck):
     def start_up(self):
         logging.warning('\n')
         state1 = self.down_interface()
-        time.sleep(10)
+        time.sleep(15)
         if state1 is True:
             state2 = self.gituple_check_type1()
             if state2 is True:
@@ -799,7 +799,7 @@ class NodeOperationMock(SyncCheck):
         logging.warning('开关节点并检查GI\n')
         state1 = self.down_interface()
         if state1 is True:
-            time.sleep(8)
+            time.sleep(15)
             state2 = self.gituple_check_type2()
             if state2 is True:
                 state3 = self.up_interface()
@@ -837,32 +837,41 @@ class NodeOperation(SyncCheck):
             shutdown_cmd = f'ipmitool -I lanplus -H {self.ip} -U {self.username} -P {self.password} power off'
             check_shutdown_cmd = f'ipmitool -I lanplus -H {self.ip} -U {self.username} -P {self.password} power status'
             state1 = subprocess.run(shutdown_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
-            time.sleep(5)
+            time.sleep(15)
             state2 = subprocess.run(check_shutdown_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
-            status_result = re.findall(r'Power is on', check_shutdown_cmd)
-            if bool(status_result) is False:
-                print("关机成功")
-                print(state2)
-                return True
-            else:
+            status_result = re.findall(r'Power is on', state2.stdout)
+            if bool(status_result) is True:
                 logging.warning("关机失败")
                 print("关机失败")
                 return False
+            else:
+                print("关机成功")
+                print(state2)
+                return True
         except:
             logging.warning("关机失败")
             print("关机失败")
             return False
 
+    @timeout_decorator.timeout(600)
     def up_interface(self):
         try:
             poweron_cmd = f'ipmitool -I lanplus -H {self.ip} -U {self.username} -P {self.password} power on'
-            time.sleep(5)
             check_poweron_cmd = f'linstor n l'
             state1 = subprocess.run(poweron_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
-            time.sleep(5)
-            state2 = subprocess.run(check_poweron_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
-            print("开机成功")
-            print(state2)
+            time.sleep(15)
+            check_ssh_obj = Ssh(self.yaml_node_list[0][0], self.yaml_node_list[0][1], self.yaml_node_list[0][2],
+                          self.yaml_node_list[0][3])
+            a = False
+            while a is False:
+                time.sleep(30)
+                state2 = check_ssh_obj.exec_command(check_poweron_cmd)
+                status_result = re.findall(r'Online', state2)
+                if len(status_result) == 3:
+                    print("开机成功")
+                    break
+                else:
+                    print("正在开机中")
             return True
         except:
             logging.warning("开机失败")
