@@ -1,12 +1,12 @@
-Cycle execution times:  1
+Cycle execution times: 1
 sp: fsp
 size: 5G
 device:
   - bond0
 phynode:
-  - ip: 10.203.1.126
-  - username: admin
-  - password: admin
+  - ip:
+  - username:
+  - password:
 node:
   - name: VersaPLX08  #此处必须为diskless节点
     ip: 10.203.1.44

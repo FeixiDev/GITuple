@@ -9,6 +9,7 @@ import logging
 import datetime
 from threading import Thread
 import timeout_decorator
+import traceback
 
 
 class ReadConfig():
@@ -137,6 +138,7 @@ class PerformCreateResourceTask():
             ssh_obj_create.close()
             print("resource和volume资源创建成功")
         except:
+            logging.warning("resource和volume资源创建失败")
             print("resource和volume资源创建失败")
 
         for node in self.yaml_node_list[1:]:
@@ -165,6 +167,7 @@ class PerformCreateResourceTask():
             result2_2 = result2_1[0].strip()
             print('资源创建成功')
         except:
+            logging.warning("资源创建失败")
             print('资源创建失败')
 
         time.sleep(4)
@@ -173,6 +176,7 @@ class PerformCreateResourceTask():
             print(f"{node2_name}的状态为 SyncTarget")
             state = True
         else:
+            logging.warning(f"{node1_name}的状态为{result1_2},错误；{node2_name}的状态为{result2_2},错误")
             print(f"{node1_name}的状态为{result1_2},错误")
             print(f"{node2_name}的状态为{result2_2},错误")
             state = False
@@ -204,8 +208,8 @@ class PerformCreateResourceTask():
             print(f'同步目标的Current为{result2[0]}')
             print(f'同步源的Bitmap为{result1[1]}')
             print("同步源的Bitmap UUID和同步目标的Current相同")
-            logging.warning(f'  (1)期望:同步源的Bitmap UUID和同步目标的Current相同\n')
-            logging.warning(f'  (2)实际情况:与预期相符\n')
+            logging.info(f'  (1)期望:同步源的Bitmap UUID和同步目标的Current相同\n')
+            logging.info(f'  (2)实际情况:与预期相符\n')
             logging.warning(f'  (3)测试结果:\n{node2_name}的GI为:{GI_info1}\n{node1_name}的GI为:{GI_info2}\n\n')
             state = True
         else:
@@ -230,6 +234,7 @@ class PerformCreateResourceTask():
             print("diskless创建成功")
             state = True
         except:
+            logging.warning("diskless创建失败")
             print("diskless创建失败")
             state = False
             sys.exit()
@@ -423,6 +428,7 @@ class DdWriteData(SyncCheck):
             time.sleep(5)
             print(".....................dd写数据操作执行完毕,dd进程已被关闭")
         except:
+            logging.warning("dd写数据操作执行失败")
             print("dd写数据操作执行失败")
 
     def start_up(self):
@@ -470,6 +476,7 @@ class DrbdNetworkOperation(SyncCheck):
             ssh_obj.close()
             state = True
         except:
+            logging.warning("网卡关闭失败")
             print("网卡关闭失败")
             state = False
             sys.exit()
@@ -486,6 +493,7 @@ class DrbdNetworkOperation(SyncCheck):
             ssh_obj.close()
             state = True
         except:
+            logging.warning("网卡开启失败")
             print("网卡开启失败")
             state = False
             sys.exit()
@@ -506,10 +514,12 @@ class DrbdNetworkOperation(SyncCheck):
                 print(f'{node1_name}节点状态为Inconsistent，正常')
                 state = True
             else:
+                logging.warning("节点状态异常")
                 print(f'{node1_name}节点状态异常')
                 state = False
                 sys.exit()
         except:
+            logging.warning("节点状态异常")
             print(f'{node1_name}节点状态异常')
             state = False
             sys.exit()
@@ -602,9 +612,10 @@ class StopDdAndCheckGituple(SyncCheck):
             print("dd进程已终止")
             state = True
         except:
-             print("停止dd写数据出现错误")
-             state = False
-             sys.exit()
+            logging.warning("停止dd写数据出现错误")
+            print("停止dd写数据出现错误")
+            state = False
+            sys.exit()
 
         return state
 
@@ -646,6 +657,7 @@ class NodeOperationMock(SyncCheck):
             ssh_obj.close()
             state = True
         except:
+            logging.warning("网卡关闭失败")
             print("网卡关闭失败")
             state = False
             sys.exit()
@@ -662,6 +674,7 @@ class NodeOperationMock(SyncCheck):
             ssh_obj.close()
             state = True
         except:
+            logging.warning("网卡开启失败")
             print("网卡开启失败")
             state = False
             sys.exit()
@@ -688,10 +701,12 @@ class NodeOperationMock(SyncCheck):
                 print(f'{node2_name}节点状态为{result2_2}，正常')
                 state = True
             else:
+                logging.warning("节点状态异常")
                 print(f'{node2_name}节点状态异常,为 {result2_2}')
                 state = False
                 sys.exit()
         except:
+            logging.warning("节点状态异常")
             print(f'{node2_name}节点状态异常,为 {result2_2}')
             state = False
 
@@ -824,10 +839,17 @@ class NodeOperation(SyncCheck):
             state1 = subprocess.run(shutdown_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
             time.sleep(5)
             state2 = subprocess.run(check_shutdown_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
-            print("关机成功")
-            print(state2)
-            return True
+            status_result = re.findall(r'Power is on', check_shutdown_cmd)
+            if bool(status_result) is False:
+                print("关机成功")
+                print(state2)
+                return True
+            else:
+                logging.warning("关机失败")
+                print("关机失败")
+                return False
         except:
+            logging.warning("关机失败")
             print("关机失败")
             return False
 
@@ -843,6 +865,7 @@ class NodeOperation(SyncCheck):
             print(state2)
             return True
         except:
+            logging.warning("开机失败")
             print("开机失败")
             return False
 
@@ -865,10 +888,12 @@ class NodeOperation(SyncCheck):
                 print(f'{node2_name}节点状态为{result2_2}，正常')
                 state = True
             else:
+                logging.warning("节点状态异常")
                 print(f'{node2_name}节点状态异常,为 {result2_2}')
                 state = False
                 sys.exit()
         except:
+            logging.warning("节点状态异常")
             print(f'{node2_name}节点状态异常,为 {result2_2}')
             state = False
             sys.exit()
@@ -996,6 +1021,7 @@ class DeleteResource(SyncCheck):
             ssh_obj.close()
             return True
         except:
+            logging.warning("资源删除失败")
             print("资源删除失败")
             return False
 
@@ -1003,7 +1029,7 @@ def log():
     time1 = datetime.datetime.now().strftime('%Y%m%d%H_%M_%S')
     # 此处进行Logging.basicConfig() 设置，后面设置无效
     logging.basicConfig(filename=f'{time1}_log.log',
-                     format = '%(asctime)s- %(levelname)s - %(message)s',
+                     format = '%(asctime)s - %(message)s',
                      level=logging.WARNING)
 
 def operations():
@@ -1038,10 +1064,10 @@ def operations():
 
     step1 = test.start_up()
     if step1 is True:
-        logging.warning('2.等待同步完成')
+        logging.info('2.等待同步完成')
         step2 = test2.start_up()
         if step2 is True:
-            logging.warning('3.dd写数据')
+            logging.info('3.dd写数据')
             step3 = test3.start_up()
             if step3 is True:
                 logging.warning('4.进行节点开关网卡操作')
@@ -1095,9 +1121,14 @@ def main():
     config_obj = ReadConfig()
     times = config_obj.yaml_info["Cycle execution times"]
     for i in range(times):
+        print(f'--------开始第{i+1}次执行--------')
         logging.warning(f'--------开始第{i+1}次执行--------')
         operations()
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        logging.warning(traceback.format_exc())
+        print(traceback.format_exc())
