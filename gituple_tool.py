@@ -436,6 +436,7 @@ class DdWriteData(SyncCheck):
         state1 = Thread(target=self.use_dd_to_write_data)
         state1.setDaemon(True)
         state1.start()
+        time.sleep(2)
         state2 = self.gituple_check()
         if state2 is True:
             return True
@@ -992,7 +993,7 @@ class NodeOperation(SyncCheck):
     def start_up(self):
         logging.info('\n')
         state1 = self.down_interface()
-        time.sleep(5)
+        time.sleep(15)
         if state1 is True:
             state2 = self.gituple_check_type2()
             if state2 is True:
