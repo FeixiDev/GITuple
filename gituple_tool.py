@@ -860,12 +860,11 @@ class NodeOperation(SyncCheck):
             poweron_cmd = f'ipmitool -I lanplus -H {self.ip} -U {self.username} -P {self.password} power on'
             check_poweron_cmd = f'linstor n l'
             state1 = subprocess.run(poweron_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8")
-            time.sleep(15)
             check_ssh_obj = Ssh(self.yaml_node_list[0][0], self.yaml_node_list[0][1], self.yaml_node_list[0][2],
                           self.yaml_node_list[0][3])
             a = False
             while a is False:
-                time.sleep(30)
+                time.sleep(20)
                 state2 = check_ssh_obj.exec_command(check_poweron_cmd)
                 status_result = re.findall(r'Online', state2)
                 if len(status_result) == 3:
