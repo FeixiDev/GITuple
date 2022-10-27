@@ -750,8 +750,7 @@ class NodeOperationMock(SyncCheck):
             sys.exit()
         return state
 
-    def gituple_check_type2(self):
-        history_gi = self.gituple_return()
+    def gituple_check_type2(self,history_gi):
         node1_name = self.yaml_node_list[1][0]  #n2
         node2_name = self.yaml_node_list[2][0]  #n3
         nodeid_and_volume_info = self.check_nodeid_and_volume()
@@ -798,10 +797,11 @@ class NodeOperationMock(SyncCheck):
 
     def start_up(self):
         logging.warning('开关节点并检查GI\n')
+        history_gi = self.gituple_return()
         state1 = self.down_interface()
         if state1 is True:
             time.sleep(15)
-            state2 = self.gituple_check_type2()
+            state2 = self.gituple_check_type2(history_gi)
             if state2 is True:
                 state3 = self.up_interface()
                 if state3 is True:
@@ -990,7 +990,7 @@ class NodeOperation(SyncCheck):
         return result2
 
     def start_up(self):
-        logging.info('\n')
+        logging.warning('开关节点并检查GI\n')
         state1 = self.down_interface()
         time.sleep(15)
         if state1 is True:
@@ -1026,7 +1026,14 @@ class DeleteResource(SyncCheck):
                       self.yaml_node_list[1][3])
         try:
             ssh_obj.exec_command(cmd)
-            print("资源删除成功")
+            check_cmd = "linstor rd l"
+            check_result = ssh_obj.exec_command(check_cmd)
+            re_result = re.findall(r'giresource', str(check_result))
+            if re_result == []:
+                print("资源删除成功")
+            else:
+                print("资源删除失败")
+                return False
             ssh_obj.close()
             return True
         except:
@@ -1094,6 +1101,7 @@ def operations():
                                 logging.warning('8.停止dd并检查GI')
                                 step8 = test5.start_up()
                                 if step8 is True:
+                                    time.sleep(5)
                                     step9 = test7.start_up()
                                     if step9 is True:
                                         print("成功，流程完成")
