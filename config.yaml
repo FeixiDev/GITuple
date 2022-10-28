@@ -1,24 +1,24 @@
-sp: sp2
-size: 1G
+Cycle execution times: 1
+sp: fsp
+size: 5G
 device:
-  - ens224
+  - bond0
 phynode:
-  - ip: None
-  - username: None
-  - password: None
-#此处填写断开节点的信息
+  - ip:
+  - username:
+  - password:
 node:
-  - name: n1  #此处必须为diskless节点
-    ip: 10.203.1.37
-    username: root
-    password: password
-  - name: n2  #此处必须为diskful节点
-    ip: 10.203.1.38
-    username: root
-    password: Feixi@123
-  - name: n3  #此处必须为diskful节点
-    ip: 10.203.1.39
-    username: root
-    password: password
+  - name: VersaPLX08  #此处必须为diskless节点
+    ip: xx.xx.xx.xx
+    username: xx
+    password: xx
+  - name: VersaPLX06  #此处必须为diskful节点
+    ip: xx.xx.xx.xx
+    username: xx
+    password: xx
+  - name: VersaPLX07  #此处必须为diskful节点
+    ip: xx.xx.xx.xx
+    username: xx
+    password: xx
 #n1配置diskless，n2和n3配置diskfull
 #n2固定做断网卡测试，n3固定做断节点测试
