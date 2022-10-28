@@ -9,16 +9,16 @@ phynode:
   - password:
 node:
   - name: VersaPLX08  #此处必须为diskless节点
-    ip: 10.203.1.44
-    username: horatio
-    password: password
+    ip: xx.xx.xx.xx
+    username: xx
+    password: xx
   - name: VersaPLX06  #此处必须为diskful节点
-    ip: 10.203.1.43
-    username: horatio
-    password: password
+    ip: xx.xx.xx.xx
+    username: xx
+    password: xx
   - name: VersaPLX07  #此处必须为diskful节点
-    ip: 10.203.1.45
-    username: horatio
-    password: password
+    ip: xx.xx.xx.xx
+    username: xx
+    password: xx
 #n1配置diskless，n2和n3配置diskfull
 #n2固定做断网卡测试，n3固定做断节点测试
