@@ -473,7 +473,13 @@ class DrbdNetworkOperation(SyncCheck):
             for dev in self.device:
                 cmd = f'ifconfig {dev} down'
                 ssh_obj.exec_command(cmd)
-                print(f"{self.yaml_node_list[1][0]}的网卡：{dev}已经关闭")
+                info = ssh_obj.exec_command('nmcli device')
+                test = re.findall(r'%s  ethernet  (connected)' % dev, info)
+                if test == []:
+                    print(f"{self.yaml_node_list[1][0]}的网卡：{dev}已经关闭")
+                else:
+                    logging.warning("网卡关闭失败")
+                    print("网卡关闭失败")
             ssh_obj.close()
             state = True
         except:
@@ -691,8 +697,6 @@ class NodeOperationMock(SyncCheck):
         ssh_obj.close()
         result1 = re.findall(r'(%s)[\s]*\|[\w\s]*\|[\w\s]*\|[\w\s(),]*\|([\w\s().%%]*)\|' % node1_name, str(info))
         result2 = re.findall(r'(%s)[\s]*\|[\w\s]*\|[\w\s]*\|[\w\s(),]*\|([\w\s().%%]*)\|' % node2_name, str(info))
-        print(result1)
-        print(result2)
         result1_1 = result1[0][1]
         result1_2 = result1_1.strip()
         result2_1 = result2[0][1]
@@ -732,8 +736,6 @@ class NodeOperationMock(SyncCheck):
 
         result1 = re.findall(r'[\w]{16}', GI_info1) #n3的结果
         result2 = re.findall(r'[\w]{16}', GI_info2) #n2的结果
-        print(result1)
-        print(result2)
 
         if result2[0] == result1[1] :   #down的是n3，因此n3的Current UUID与n2的Bitmap UUID应一致
             print(f"节点{node2_name}的Current UUID与节点{node1_name}的Bitmap UUID一致")
@@ -762,7 +764,6 @@ class NodeOperationMock(SyncCheck):
         ssh_obj_1.close()
 
         result1 = re.findall(r'[\w]{16}', GI_info1)
-        print(result1)
 
         if history_gi == result1[1] :   #down的是n3，因此n3的Current UUID与n2的Bitmap UUID应一致
             print(f"节点{node2_name}的原Current UUID{history_gi}与现Bitmap UUID{result1[1]}一致")
@@ -833,6 +834,7 @@ class NodeOperation(SyncCheck):
         self.username = self.yaml_phynode_list[1]['username']
         self.password = self.yaml_phynode_list[2]['password']
 
+    @timeout_decorator(600)
     def down_interface(self):
         try:
             shutdown_cmd = f'ipmitool -I lanplus -H {self.ip} -U {self.username} -P {self.password} power off'
@@ -1044,7 +1046,7 @@ class DeleteResource(SyncCheck):
 def log():
     time1 = datetime.datetime.now().strftime('%Y%m%d%H_%M_%S')
     # 此处进行Logging.basicConfig() 设置，后面设置无效
-    logging.basicConfig(filename=f'{time1}_log.log',
+    logging.basicConfig(filename=f'gituple_{time1}_log.log',
                      format = '%(asctime)s - %(message)s',
                      level=logging.WARNING)
 
